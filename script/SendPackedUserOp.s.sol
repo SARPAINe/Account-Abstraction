@@ -5,6 +5,7 @@ import {PackedUserOperation} from "account-abstraction/interfaces/PackedUserOper
 import {HelperConfig} from "./HelperConfig.s.sol";
 import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {console2} from "forge-std/console2.sol";
 
 contract SendPackedUserOp is Script {
     using MessageHashUtils for bytes32;
@@ -13,13 +14,16 @@ contract SendPackedUserOp is Script {
 
     function generateSignedUserOp(
         bytes memory callData,
-        HelperConfig.NetworkConfig memory networkConfig
-    ) public view returns (PackedUserOperation memory) {
+        HelperConfig.NetworkConfig memory networkConfig,
+        address minimalAccount
+    ) public view returns (PackedUserOperation memory, bytes32) {
         //1. Generate the unsigned data
-        uint256 nonce = vm.getNonce(networkConfig.account);
+        uint256 nonce = vm.getNonce(minimalAccount) - 1;
+        console2.log("Using nonce:", nonce);
+
         PackedUserOperation memory userOp = _generateUnsignedUserOp(
             callData,
-            networkConfig.account,
+            minimalAccount,
             nonce
         );
 
@@ -30,12 +34,17 @@ contract SendPackedUserOp is Script {
         bytes32 digest = userOpHash.toEthSignedMessageHash();
 
         //3. sign it
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            networkConfig.account,
-            digest
-        );
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+        uint256 ANVIL_DEFAULT_PRIVATE_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+        if (block.chainid == 31337) {
+            (v, r, s) = vm.sign(ANVIL_DEFAULT_PRIVATE_KEY, digest);
+        } else {
+            (v, r, s) = vm.sign(networkConfig.account, digest);
+        }
         userOp.signature = abi.encodePacked(r, s, v); // note the order
-        return userOp;
+        return (userOp, digest);
     }
 
     function _generateUnsignedUserOp(

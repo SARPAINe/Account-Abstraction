@@ -26,6 +26,10 @@ contract HelperConfig is Script {
         networkConfigs[SEPOLIA_CHAIN_ID] = getEthSepoliaConfig();
     }
 
+    function getConfig() public returns (NetworkConfig memory) {
+        return getConfigByChainId(block.chainid);
+    }
+
     function getConfigByChainId(
         uint256 chainId
     ) public returns (NetworkConfig memory) {
@@ -58,16 +62,17 @@ contract HelperConfig is Script {
         if (localNetworkConfig.entryPoint != address(0)) {
             return localNetworkConfig;
         }
-        // deploy a mock entry point
+        // deploy a mock entry point and persist it so repeated calls reuse it
         console2.log("Deploying mock EntryPoint contract...");
         vm.startBroadcast(FOUNDRY_DEFAULT_ANVIL_ACCOUNT);
         EntryPoint entryPoint = new EntryPoint();
         vm.stopBroadcast();
 
-        return
-            NetworkConfig({
-                entryPoint: address(entryPoint),
-                account: FOUNDRY_DEFAULT_ANVIL_ACCOUNT
-            });
+        localNetworkConfig = NetworkConfig({
+            entryPoint: address(entryPoint),
+            account: FOUNDRY_DEFAULT_ANVIL_ACCOUNT
+        });
+
+        return localNetworkConfig;
     }
 }
