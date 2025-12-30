@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.33;
+pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {MinimalAccount} from "../../src/ethereum/MinimalAccount.sol";
@@ -13,7 +13,6 @@ import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
 
 contract MinimalAccountTest is Test {
     using MessageHashUtils for bytes32;
-
     HelperConfig helperConfig;
     MinimalAccount minimalAccount;
     ERC20Mock usdc;
